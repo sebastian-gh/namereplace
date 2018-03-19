@@ -2,7 +2,6 @@
     <qresource prefix="/">
         <file>images/diropen-32.png</file>
         <file>images/standardbutton-close-32.png</file>
-        <file>images/process.png</file>
         <file>images/run.png</file>
     </qresource>
 </RCC>
