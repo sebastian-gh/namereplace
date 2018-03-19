@@ -31,7 +31,6 @@ private:
 
     QLabel *oldLabel;
     QLabel *newLabel;
-    QLabel *spaceLabel;
     QLineEdit *oldText;
     QLineEdit *newText;
 

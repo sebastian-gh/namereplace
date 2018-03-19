@@ -31,8 +31,7 @@ MainWindow::MainWindow(QWidget *parent) :
     newText->setMinimumWidth(30);
     ui->mainToolBar->addWidget(newText);
 
-    spaceLabel = new QLabel("  ", this);
-    ui->mainToolBar->addWidget(spaceLabel);
+    ui->mainToolBar->addSeparator();
 
     connect(ui->actionOpen, SIGNAL(triggered()), this, SLOT(openDirectory()));
     connect(ui->actionRun, SIGNAL(triggered()), this, SLOT(rename()));
@@ -47,7 +46,6 @@ MainWindow::~MainWindow()
     delete newLabel;
     delete oldText;
     delete newText;
-    delete spaceLabel;
     delete ui;
 }
 
@@ -72,7 +70,8 @@ void MainWindow::rename()
 
     QDir::setCurrent(workDirectory);
 
-    QDirIterator iterator(workDirectory, QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    QDirIterator iterator(workDirectory, QDir::Dirs | QDir::NoDotAndDotDot,
+                          QDirIterator::Subdirectories);
     QStringList entries;
 
     while(iterator.hasNext()) {
@@ -96,14 +95,23 @@ void MainWindow::processDir(const QString &filePath)
 {
     insertText(QString("\nProcessing %1/ ...\n\n").arg(filePath));
 
+    QString str1 = QString("for i in *%1*;").arg(oldText->text());
+    QString str2 = QString("do mv \"$i\" \"$(echo $i | sed 's/%1/%2/')\";").arg(oldText->text()).arg(newText->text());
+    qDebug() << str1;
+    qDebug() << str2;
+
     QProcess moveProcess;
     moveProcess.setWorkingDirectory(filePath);
     moveProcess.start("bash");
-    moveProcess.write(QString("for i in *%1*;").arg(oldText->text()).toLatin1());
-    moveProcess.write(QString("do mv \"$i\" \"%1${i#%2}\";").arg(newText->text()).arg(oldText->text()).toLatin1());
+    moveProcess.write(str1.toLatin1());
+    moveProcess.write(str2.toLatin1());
     moveProcess.write("done");
     moveProcess.closeWriteChannel();
     moveProcess.waitForFinished();
+
+    QByteArray output = moveProcess.readAll();
+    qDebug() << output;
+
     moveProcess.close();
 
     QDir dir(filePath);
@@ -126,14 +134,19 @@ void MainWindow::insertText(const QString &text)
 void MainWindow::oldEdited()
 {
     if(!workDirectory.isEmpty() && !oldText->text().isEmpty()) {
+
+        QString proc = QString("find . -name \"*%1*\"").arg(oldText->text());
+        qDebug() << proc;
+
         QProcess find;
         find.setWorkingDirectory(workDirectory);
-        find.start(QString("find . -name \"*%1*\"").arg(oldText->text()));
+        find.start(proc);
         find.waitForFinished();
         QByteArray entries = find.readAll();
         find.close();
 
         QStringList list = QString::fromLatin1(entries).split("\n");
+
         if(!list.isEmpty() && entries.size() > 3) {
 
             insertText(QString("Files and directories containing %1 in %2:\n\n")
@@ -167,5 +180,4 @@ void MainWindow::newEdited()
             insertText("\nPress Cmd+R or click the running man\n");
         }
     }
-
 }
